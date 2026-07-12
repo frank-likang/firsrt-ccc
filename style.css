@@ -1,0 +1,280 @@
+/* ============================================================
+   CSS 自定义属性 (变量)
+   ============================================================
+   通过 :root 和 [data-mode] 属性选择器来实现三种模式的配色切换。
+   JS 只需修改 <body> 的 data-mode 属性，所有颜色自动过渡。
+   ============================================================ */
+:root {
+  /* 字体栈：优先使用系统原生字体，兼顾中英文显示 */
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --radius: 12px;
+
+  /* ---------- 专注模式的配色 (默认，data-mode="focus") ---------- */
+  --accent: #e74c3c;           /* 主色调：暖红色，代表专注的紧迫感 */
+  --accent-light: #fce4e4;     /* 浅色变体：用于按钮背景 */
+  --bg: #fef8f8;               /* 页面背景：极淡的红色调 */
+  --text: #2c3e50;             /* 主文字色：深蓝灰，确保可读性 */
+  --text-secondary: #7f8c8d;   /* 次要文字色：中性灰 */
+  --btn-hover: #c0392b;        /* 主按钮悬停色：更深的红色 */
+  --ring-bg: #f0e0e0;          /* 进度环底色：浅粉 */
+}
+
+/* ---------- 短休息模式的配色 (data-mode="short-break") ---------- */
+[data-mode="short-break"] {
+  --accent: #27ae60;           /* 主色调：绿色，传达放松感 */
+  --accent-light: #e4fce8;     /* 浅色变体 */
+  --bg: #f6fdf8;               /* 页面背景 */
+  --ring-bg: #e0f0e4;          /* 进度环底色 */
+  --btn-hover: #1e8449;        /* 主按钮悬停色 */
+}
+
+/* ---------- 长休息模式的配色 (data-mode="long-break") ---------- */
+[data-mode="long-break"] {
+  --accent: #2980b9;           /* 主色调：蓝色，传达平静和专注 */
+  --accent-light: #e4f0fc;     /* 浅色变体 */
+  --bg: #f5f9fd;               /* 页面背景 */
+  --ring-bg: #e0e8f0;          /* 进度环底色 */
+  --btn-hover: #1c6ea4;        /* 主按钮悬停色 */
+}
+
+/* ============================================================
+   全局重置
+   ============================================================ */
+*, *::before, *::after {
+  box-sizing: border-box;  /* 统一盒模型：padding 和 border 计入宽高 */
+  margin: 0;
+  padding: 0;
+}
+
+/* ============================================================
+   页面主体
+   ============================================================ */
+body {
+  font-family: var(--font);
+  background: var(--bg);        /* 背景色随模式变化 */
+  color: var(--text);
+  min-height: 100vh;             /* 至少占满整个视口高度 */
+  display: flex;
+  justify-content: center;       /* 水平居中 */
+  align-items: center;           /* 垂直居中：保证计时器在页面正中间 */
+  /* 平滑过渡：切换模式时背景和文字颜色渐变 */
+  transition: background-color 0.5s ease, color 0.5s ease;
+}
+
+/* ============================================================
+   主容器
+   ============================================================ */
+.container {
+  text-align: center;            /* 所有文字居中 */
+  max-width: 420px;              /* 限制最大宽度，避免大屏上元素过散 */
+  width: 100%;
+  padding: 24px;                 /* 内边距，移动端不贴边 */
+}
+
+/* ============================================================
+   标题 "番茄钟"
+   ============================================================ */
+.app-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;       /* 轻微字间距 */
+  margin-bottom: 28px;
+  color: var(--accent);          /* 标题颜色随模式变化 */
+  transition: color 0.5s ease;
+}
+
+/* ============================================================
+   模式指示器 — "专注" / "短休息" / "长休息"
+   ============================================================ */
+.mode-indicator {
+  display: inline-block;
+  background: var(--accent);     /* 实心背景，颜色随模式 */
+  color: #fff;                   /* 白色文字在有色背景上 */
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 6px 20px;
+  border-radius: 20px;           /* 圆角胶囊形状 */
+  letter-spacing: 0.04em;
+  margin-bottom: 24px;
+  transition: background-color 0.5s ease;
+}
+
+/* ============================================================
+   圆形计时器
+   ============================================================ */
+.timer-circle {
+  position: relative;            /* 作为内部 .timer-display 的定位参考 */
+  /* 自适应大小：最大280px，小屏用70vmin缩放 */
+  width: min(280px, 70vmin);
+  height: min(280px, 70vmin);
+  margin: 0 auto 24px;           /* 水平居中 */
+}
+
+/* SVG 进度环 — 旋转 -90° 让进度从12点钟方向开始 */
+.progress-ring {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+/* 进度环底层圆（灰色背景轨道） */
+.progress-ring-bg {
+  fill: none;
+  stroke: var(--ring-bg);        /* 轨道颜色随模式变化 */
+  stroke-width: 8;
+  transition: stroke 0.5s ease;
+}
+
+/* 进度环填充层（从0到满的弧线，随倒计时减少） */
+.progress-ring-fill {
+  fill: none;
+  stroke: var(--accent);         /* 填充色随模式变化 */
+  stroke-width: 8;
+  stroke-linecap: round;         /* 端点圆角，视觉更柔和 */
+  /* 圆周 = 2 * π * 90 = 565.49
+     stroke-dasharray 设为周长，配合 stroke-dashoffset
+     控制当前可见弧长。offset=0 时环完整，offset=周长时环清空。 */
+  stroke-dasharray: 565.49;
+  stroke-dashoffset: 0;          /* JS 在 renderIncremental 中动态更新此值 */
+  transition: stroke 0.5s ease, stroke-dashoffset 0.25s linear;
+}
+
+/* 计时器中央的数字显示 "25:00" */
+.timer-display {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);  /* 绝对居中 */
+  font-size: 3.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums; /* 等宽数字，避免数字宽度跳动 */
+  color: var(--accent);          /* 数字颜色随模式变化 */
+  transition: color 0.5s ease;
+  letter-spacing: 0.02em;
+}
+
+/* ============================================================
+   番茄计数 — 4个圆点表示当前循环进度
+   ============================================================ */
+.session-counter {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 28px;
+  transition: color 0.5s ease;
+}
+
+/* 已完成的番茄 — 实心圆点 */
+.session-counter .dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);     /* 圆点颜色随模式变化 */
+  margin: 0 3px;
+  transition: background-color 0.5s ease;
+}
+
+/* 未完成的番茄 — 灰色空心效果 */
+.session-counter .dot.empty {
+  background: #ddd;
+}
+
+/* ============================================================
+   控制按钮区域
+   ============================================================ */
+.controls {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;               /* 允许换行，适配窄屏 */
+  margin-bottom: 20px;
+}
+
+/* 按钮基础样式 */
+.btn {
+  border: none;
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 12px 28px;            /* 至少48px触摸区域，符合可用性规范 */
+  border-radius: var(--radius);
+  transition: background-color 0.2s ease, opacity 0.2s ease, transform 0.1s ease;
+}
+
+/* 按下时的按压反馈 */
+.btn:active {
+  transform: scale(0.97);
+}
+
+/* 禁用状态：半透明 + 禁止点击 */
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 主按钮 "开始/暂停" — 实心填充 */
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  min-width: 100px;              /* 保证按钮宽度一致，不会因为文字切换而变形 */
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--btn-hover);
+}
+
+/* 次要按钮 "重置" — 浅色填充 */
+.btn-secondary {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--ring-bg);
+}
+
+/* 幽灵按钮 "跳过" — 无背景，仅文字 */
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  color: var(--accent);
+  background: var(--accent-light);
+}
+
+/* ============================================================
+   统计底部 — "本次已完成 X 个番茄"
+   ============================================================ */
+.stats {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  transition: color 0.5s ease;
+}
+
+.stats span {
+  font-weight: 700;
+  color: var(--accent);          /* 数字突出显示 */
+  transition: color 0.5s ease;
+}
+
+/* ============================================================
+   键盘快捷键提示 (预留，当前未在 HTML 中使用)
+   ============================================================ */
+.keyboard-hint {
+  margin-top: 16px;
+  font-size: 0.75rem;
+  color: #bbb;
+}
+
+.keyboard-hint kbd {
+  display: inline-block;
+  background: #eee;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: var(--font);
+  font-size: 0.7rem;
+}

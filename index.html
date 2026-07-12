@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>番茄钟</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%23e74c3c'/></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-mode="focus">
+  <div class="container">
+    <header>
+      <h1 class="app-title">番茄钟</h1>
+    </header>
+
+    <main>
+      <div class="mode-indicator" id="modeIndicator">专注</div>
+
+      <div class="timer-circle">
+        <svg class="progress-ring" viewBox="0 0 200 200">
+          <circle class="progress-ring-bg" cx="100" cy="100" r="90"/>
+          <circle class="progress-ring-fill" id="progressRing" cx="100" cy="100" r="90"/>
+        </svg>
+        <div class="timer-display" id="timerDisplay">25:00</div>
+      </div>
+
+      <div class="session-counter" id="sessionCounter">第 1 / 4 个番茄</div>
+
+      <div class="controls">
+        <button class="btn btn-primary" id="btnStartPause">开始</button>
+        <button class="btn btn-secondary" id="btnReset">重置</button>
+        <button class="btn btn-ghost" id="btnSkip">跳过</button>
+      </div>
+
+      <footer class="stats">
+        本次已完成 <span id="totalCount">0</span> 个番茄
+      </footer>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
